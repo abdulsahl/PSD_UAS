@@ -98,8 +98,8 @@ st.markdown("<p style='text-align: center; color: #888; margin-bottom: 30px;'>Ad
 @st.cache_resource(show_spinner=False)
 def load_models():
     try:
-        model_a = joblib.load('model_A_full.pkl')
-        model_b = joblib.load('model_B_roi.pkl')
+        model_a = joblib.load('../model_A_full.pkl')
+        model_b = joblib.load('../model_B_roi.pkl')
         return model_a, model_b, None
     except Exception as e:
         return None, None, str(e)
