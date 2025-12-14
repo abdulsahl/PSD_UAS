@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 import io
+import aeon
 
 # --- Page Config ---
 st.set_page_config(
