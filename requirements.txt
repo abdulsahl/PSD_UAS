@@ -8,4 +8,4 @@ joblib
 aeon
 streamlit
 mediapipe==0.10.9
-opencv-python
+opencv-python-headless
