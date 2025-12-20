@@ -5,6 +5,9 @@ import joblib
 import matplotlib.pyplot as plt
 import io
 import aeon
+import video_processor
+import tempfile
+import os
 
 # --- Page Config ---
 st.set_page_config(
@@ -204,25 +207,56 @@ def classify_batch(X_batch):
 with st.container():
 
     
-    tab1, tab2 = st.tabs(["Upload Dataset", "Manual Entry"])
+    # Video Upload Section
+    st.info("ℹ️ **Petunjuk Penggunaan:** Upload video berdurasi sekitar **5 detik** di mana aktor **menghadap ke samping** (profil).")
+    
+    uploaded_file = st.file_uploader("Upload Video File", type=['mp4', 'mov', 'avi'])
     
     X_input = None
     
-    with tab1:
-        uploaded_file = st.file_uploader("Drop your dataset file here (.txt, .csv, .arff)", type=['txt', 'csv', 'arff', 'ts'])
-        if uploaded_file:
-            X_input = process_file(uploaded_file)
-            if X_input is None:
-                st.error("Could not parse file. Ensure it contains numeric time series data.")
-    
-    with tab2:
-        raw_text = st.text_area("Paste data (Single or Multiple lines)", height=150, placeholder="0.5 0.2 ... (150 values)\n0.1 0.4 ...")
-        if raw_text:
-            X_input = parse_content(raw_text)
-            if X_input is None:
-                st.error("Invalid format. Use space separated numbers.")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    if uploaded_file:
+        # Video Processing
+        with st.spinner("Analyzing Video Structure..."):
+            try:
+                tfile = tempfile.NamedTemporaryFile(delete=False) 
+                tfile.write(uploaded_file.read())
+                video_path = tfile.name
+                
+                vp = video_processor.VideoProcessor()
+                # Extract signal and annotated video path
+                raw_signal, annotated_video_path = vp.extract_signal(video_path)
+                
+                if raw_signal is not None:
+                    X_input = vp.preprocess_signal(raw_signal)
+                    st.success("Video processed successfully! Extracted hand movement.")
+                    
+                    # Layout for Video and Signal
+                    col_video, col_signal = st.columns(2)
+                    
+                    with col_video:
+                        st.markdown("#### Tracked Hand (Centroid)")
+                        if annotated_video_path:
+                            st.video(annotated_video_path)
+                    
+                    with col_signal:
+                        st.markdown("#### Extracted Signal (Horizontal Motion)")
+                        fig_debug, ax_debug = plt.subplots(figsize=(8, 4))
+                        ax_debug.plot(X_input[0], color='cyan')
+                        ax_debug.set_facecolor('#1e212b')
+                        fig_debug.patch.set_facecolor('#1e212b')
+                        ax_debug.tick_params(colors='white')
+                        ax_debug.spines['bottom'].set_color('white')
+                        ax_debug.spines['left'].set_color('white')
+                        st.pyplot(fig_debug)
+                else:
+                    st.error("Could not detect hand in video. Please ensure the right hand is visible.")
+                    
+                # Cleanup
+                tfile.close()
+                os.unlink(video_path)
+                
+            except Exception as e:
+                st.error(f"Video Processing Error: {str(e)}")
 
 # Analysis Container
 if X_input is not None:
